@@ -90,12 +90,18 @@
     Add xml:ids to line numbers in the editions
     ================
   -->
-  <xsl:template match="ab/lb">
+  <xsl:template match="div[@type='edition']//lb">
+    <xsl:variable name="ancestor-id" select="ancestor::div[@type='edition'][1]/@xml:id"/>
+    <xsl:variable name="ancestor-n-values">
+      <xsl:for-each select="ancestor::div/@n">
+        <xsl:value-of select="concat('', .)"/>
+      </xsl:for-each>
+    </xsl:variable>
     <xsl:copy>
       <xsl:attribute name="xml:id">
-        <xsl:value-of select="concat(ancestor::div/@xml:id, 'ln', @n)"/>
+        <xsl:value-of select="concat($ancestor-id, $ancestor-n-values, 'ln', @n)"/>
       </xsl:attribute>
-      <xsl:apply-templates select="@* | node()"/>
+      <xsl:apply-templates select="@*|node()"/>
     </xsl:copy>
   </xsl:template>
 
@@ -105,7 +111,7 @@
     (and adding other requisite msIdentifier elements)
     ================
   -->
-  <xsl:template match="msIdentifier">
+  <xsl:template match="TEI/TEI[descendant::idno[@type='ddb-filename']]//sourceDesc//msIdentifier">
     <msIdentifier>
       <placeName>
         <settlement/>
@@ -128,7 +134,7 @@
   <xsl:template match="ref[contains(@target, 'papyri.info') and contains(@target, '?')]">
     <ref>
       <xsl:attribute name="target">
-        <xsl:value-of select="substring-before(@target, '?')"/>
+        <xsl:value-of select="translate(substring-before(@target, '?'), '%3B', ';')"/>
       </xsl:attribute>
       <xsl:apply-templates select="node()"/>
     </ref>
@@ -147,7 +153,32 @@
     </ref>
   </xsl:template>
   
+  <!--
+    ================
+    Reorder ref before p in div[@type='commentary']
+    ================
+  -->
 
+  <xsl:template match="div[@type='commentary']">
+    <div type="commentary">
+      <xsl:apply-templates select="@*|node()"/>
+    </div>
+  </xsl:template>
+  
+  <xsl:template match="note">
+    <note>
+      <xsl:apply-templates select=".//ref[not(@*)]"/>
+      <xsl:apply-templates select="p"/>
+      <xsl:apply-templates select="*[not(self::p)]"/>
+    </note>
+  </xsl:template>
+   
+  <xsl:template match="note/p">
+    <p>
+      <xsl:apply-templates select="@*|node()[not(self::ref[not(@*)])]"/>
+    </p>
+  </xsl:template>
+  
   <!--
     ================
     Hyperlink automated lookup: NOT YET OPERATIONAL
